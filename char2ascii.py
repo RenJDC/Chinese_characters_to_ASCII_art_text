@@ -169,22 +169,94 @@ def main():
         sys.exit(0)
 
     if not args.char:
-        print("请输入汉字（输入 q 退出，多字自动并排）:")
+        charset_name = args.charset
+        width = args.width
+        invert = args.invert
+        gap = args.gap
+        height_ratio = args.height_ratio
+        font_path = args.font
+
+        HELP_TEXT = """交互命令:
+  /c <风格>    切换字符集    例: /c braille
+  /w <宽度>    调整宽度      例: /w 60
+  /i           反转明暗      例: /i
+  /g <间距>    调整字间距    例: /g 4
+  /r <比例>    调整高度比    例: /r 1.2
+  /s           查看当前设置
+  /l           列出所有字符集
+  /help        查看帮助
+  q            退出"""
+
+        def show_status():
+            inv = "是" if invert else "否"
+            print(f"  风格: {charset_name}  宽度: {width}  间距: {gap}  高度比: {height_ratio}  反色: {inv}")
+
+        print("请输入汉字（q 退出，/help 查看命令）:")
+        print(f"  当前: ", end="")
+        show_status()
+        print()
         while True:
             try:
                 text = input(">>> ").strip()
             except (EOFError, KeyboardInterrupt):
                 break
-            if text.lower() in ("q", "quit", "exit"):
-                break
             if not text:
                 continue
+            if text.lower() in ("q", "quit", "exit"):
+                break
+
+            # 交互命令
+            if text.startswith("/"):
+                parts = text.split(maxsplit=1)
+                cmd = parts[0].lower()
+                val = parts[1].strip() if len(parts) > 1 else ""
+
+                if cmd in ("/help",):
+                    print(HELP_TEXT)
+                elif cmd in ("/s", "/status"):
+                    show_status()
+                elif cmd in ("/l", "/list"):
+                    for name, chars in CHARSETS.items():
+                        mark = " ←" if name == charset_name else ""
+                        print(f"  {name:12s}{chars}{mark}")
+                elif cmd in ("/c", "/charset"):
+                    if val in CHARSETS:
+                        charset_name = val
+                        print(f"  已切换: {charset_name}")
+                    else:
+                        print(f"  未知风格，/l 查看可用")
+                elif cmd in ("/w", "/width"):
+                    try:
+                        width = max(10, min(200, int(val)))
+                        print(f"  宽度: {width}")
+                    except ValueError:
+                        print("  用法: /w <数字>")
+                elif cmd in ("/g", "/gap"):
+                    try:
+                        gap = max(0, min(20, int(val)))
+                        print(f"  间距: {gap}")
+                    except ValueError:
+                        print("  用法: /g <数字>")
+                elif cmd in ("/r", "/ratio", "/rh"):
+                    try:
+                        height_ratio = max(0.3, min(3.0, float(val)))
+                        print(f"  高度比: {height_ratio}")
+                    except ValueError:
+                        print("  用法: /r <数字>")
+                elif cmd == "/i":
+                    invert = not invert
+                    state = "开" if invert else "关"
+                    print(f"  反色: {state}")
+                else:
+                    print(f"  未知命令，/help 查看帮助")
+                continue
+
             print()
             if len(text) == 1:
-                print(convert(text, args.width, args.charset, args.font, args.invert, args.height_ratio))
+                print(convert(text, width, charset_name, font_path, invert, height_ratio))
             else:
-                print(batch_convert(text, args.width, args.charset, args.font,
-                                    args.invert, args.height_ratio, args.gap))
+                print(batch_convert(text, width, charset_name, font_path,
+                                    invert, height_ratio, gap))
             print()
     else:
         text = args.char
