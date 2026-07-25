@@ -120,8 +120,8 @@ class Char2AsciiApp:
         # 状态
         self.charset_name = tk.StringVar(value="classic")
         self.font_var = tk.StringVar()
-        self.width_var = tk.IntVar(value=40)
-        self.gap_var = tk.IntVar(value=2)
+        self.width_var = tk.DoubleVar(value=40)
+        self.gap_var = tk.DoubleVar(value=2)
         self.height_ratio_var = tk.DoubleVar(value=1.0)
         self.invert_var = tk.BooleanVar(value=False)
         self.status_var = tk.StringVar(value="就绪")
@@ -458,12 +458,12 @@ class Char2AsciiApp:
 
         params = {
             "input_text": text,
-            "width": self.width_var.get(),
+            "width": round(self.width_var.get()),
             "charset_name": self.charset_name.get(),
             "font_path": font_path,
             "invert": self.invert_var.get(),
             "height_ratio": self.height_ratio_var.get(),
-            "gap": self.gap_var.get(),
+            "gap": round(self.gap_var.get()),
         }
 
         self.root.after(50, lambda: threading.Thread(
