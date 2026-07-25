@@ -5,7 +5,7 @@
 """
 
 import tkinter as tk
-from tkinter import ttk, font as tkfont, filedialog
+from tkinter import ttk, filedialog
 import threading
 import os
 import platform
@@ -172,7 +172,6 @@ class Char2AsciiApp:
                                     highlightbackground=COLORS["border"],
                                     highlightthickness=1)
         self.input_entry.pack(fill="x", padx=12, pady=(8, 4), ipady=8)
-        self.input_entry.bind("<KeyRelease>", self._on_input_change)
 
         hint = tk.Label(frame, text="输入汉字，支持多字并排",
                         bg=COLORS["bg"], fg=COLORS["text3"],
@@ -249,8 +248,7 @@ class Char2AsciiApp:
         # 间距
         self._make_slider(inner, "间距", self.gap_var, 0, 10, 2)
         # 高度比
-        self._make_slider(inner, "高度比", self.height_ratio_var, 0.3, 3.0, 3,
-                          fmt=":.1f")
+        self._make_slider(inner, "高度比", self.height_ratio_var, 0.3, 3.0, 3)
 
         # 反色
         invert_frame = tk.Frame(inner, bg=COLORS["bg"])
@@ -277,7 +275,7 @@ class Char2AsciiApp:
                 self.font_combo["values"] = [f[0] for f in self.available_fonts]
             self.font_var.set(name)
 
-    def _make_slider(self, parent, label, var, from_, to_, row, fmt=":d"):
+    def _make_slider(self, parent, label, var, from_, to_, row):
         tk.Label(parent, text=label, bg=COLORS["bg"], fg=COLORS["text2"],
                  font=("Helvetica", 10), width=5, anchor="w").grid(
             row=row, column=0, sticky="w", pady=3)
@@ -375,9 +373,6 @@ class Char2AsciiApp:
                         arrowcolor=COLORS["text3"])
 
     # ─── 事件处理 ─────────────────────────────────────────────
-
-    def _on_input_change(self, event=None):
-        pass  # 可扩展为实时预览
 
     def _on_param_change(self, value=None):
         self._update_charset_preview()

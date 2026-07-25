@@ -267,7 +267,7 @@ def batch_convert(text, width=40, charset_name="classic", font_path=None,
     bitmaps = [char_to_bitmap(ch, font, cell_w, cell_h) for ch in text]
 
     result_lines = [""] * cell_h
-    for bm in bitmaps:
+    for i, bm in enumerate(bitmaps):
         for y in range(cell_h):
             row = []
             for x in range(cell_w):
@@ -277,7 +277,8 @@ def batch_convert(text, width=40, charset_name="classic", font_path=None,
                 idx = int((1 - px / 255) * (len(charset) - 1))
                 idx = max(0, min(idx, len(charset) - 1))
                 row.append(charset[idx])
-            result_lines[y] += "".join(row) + gap_str
+            suffix = gap_str if i < len(bitmaps) - 1 else ""
+            result_lines[y] += "".join(row) + suffix
 
     return "\n".join(result_lines)
 
