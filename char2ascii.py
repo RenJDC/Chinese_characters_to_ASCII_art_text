@@ -273,7 +273,7 @@ def batch_convert(text, width=40, charset_name="classic", font_path=None,
 
     cell_w = width
     cell_h = int(width * height_ratio)
-    gap_str = " " * gap
+    gap_str = " " * gap if gap > 0 else ""
 
     bitmaps = [char_to_bitmap(ch, font, cell_w, cell_h) for ch in text]
 
@@ -288,8 +288,11 @@ def batch_convert(text, width=40, charset_name="classic", font_path=None,
                 idx = int((1 - px / 255) * (len(charset) - 1))
                 idx = max(0, min(idx, len(charset) - 1))
                 row.append(charset[idx])
+            row_str = "".join(row)
+            if gap < 0 and i < len(bitmaps) - 1:
+                row_str = row_str[:gap]
             suffix = gap_str if i < len(bitmaps) - 1 else ""
-            result_lines[y] += "".join(row) + suffix
+            result_lines[y] += row_str + suffix
 
     return "\n".join(result_lines)
 

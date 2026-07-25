@@ -271,7 +271,7 @@ class Char2AsciiApp:
         # 宽度
         self._make_slider(inner, "宽度", self.width_var, 10, 100, 1)
         # 间距
-        self._make_slider(inner, "间距", self.gap_var, 0, 10, 2)
+        self._make_slider(inner, "间距", self.gap_var, -10, 10, 2)
         # 高度比
         self._make_slider(inner, "高度比", self.height_ratio_var, 0.3, 3.0, 3, resolution=0.1)
 
