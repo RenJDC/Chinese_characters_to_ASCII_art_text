@@ -326,6 +326,9 @@ class Char2AsciiApp:
                               command=self._clear)
         clear_btn.pack(side="left")
 
+        # 保存引用，供 _set_buttons_state 使用
+        self._action_buttons = [gen_btn, copy_btn, clear_btn]
+
     def _build_preview_section(self, parent):
         # 预览标题栏
         bar = tk.Frame(parent, bg=COLORS["bg3"])
@@ -458,9 +461,8 @@ class Char2AsciiApp:
         )
 
     def _set_buttons_state(self, state):
-        for w in self.root.winfo_children():
-            if isinstance(w, tk.Button):
-                w.config(state=state)
+        for btn in getattr(self, "_action_buttons", []):
+            btn.config(state=state)
 
     def _copy(self):
         content = self.preview_text.get("1.0", "end").rstrip()
