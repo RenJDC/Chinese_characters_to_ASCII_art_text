@@ -15,17 +15,17 @@ from char2ascii import convert, batch_convert, CHARSETS, find_font
 # ─── 颜色主题 ─────────────────────────────────────────────────
 
 COLORS = {
-    "bg":       "#0f172a",
-    "bg2":      "#1e293b",
-    "bg3":      "#1a2538",
-    "border":   "#334155",
-    "text":     "#f1f5f9",
-    "text2":    "#94a3b8",
-    "text3":    "#64748b",
-    "accent":   "#22d3ee",
-    "accent2":  "#06b6d4",
-    "green":    "#4ade80",
-    "red":      "#ef4444",
+    "bg":       "#111827",
+    "bg2":      "#1f2937",
+    "bg3":      "#283548",
+    "border":   "#374151",
+    "text":     "#f9fafb",
+    "text2":    "#d1d5db",
+    "text3":    "#9ca3af",
+    "accent":   "#818cf8",
+    "accent2":  "#6366f1",
+    "green":    "#34d399",
+    "red":      "#f87171",
 }
 
 
