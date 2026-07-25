@@ -273,7 +273,7 @@ class Char2AsciiApp:
         # 间距
         self._make_slider(inner, "间距", self.gap_var, 0, 10, 2)
         # 高度比
-        self._make_slider(inner, "高度比", self.height_ratio_var, 0.3, 3.0, 3)
+        self._make_slider(inner, "高度比", self.height_ratio_var, 0.3, 3.0, 3, resolution=0.1)
 
         # 反色
         invert_frame = tk.Frame(inner, bg=COLORS["bg"])
@@ -300,17 +300,20 @@ class Char2AsciiApp:
                 self.font_combo["values"] = [f[0] for f in self.available_fonts]
             self.font_var.set(name)
 
-    def _make_slider(self, parent, label, var, from_, to_, row):
+    def _make_slider(self, parent, label, var, from_, to_, row, resolution=None):
         tk.Label(parent, text=label, bg=COLORS["bg"], fg=COLORS["text2"],
                  font=("Helvetica", 10), width=5, anchor="w").grid(
             row=row, column=0, sticky="w", pady=3)
 
-        scale = tk.Scale(parent, variable=var, from_=from_, to=to_,
-                         orient="horizontal", bg=COLORS["bg"],
-                         fg=COLORS["text"], troughcolor=COLORS["bg3"],
-                         highlightthickness=0, sliderlength=16,
-                         font=("Helvetica", 9), length=140,
-                         command=lambda _: self._on_param_change())
+        scale_kw = dict(variable=var, from_=from_, to=to_,
+                        orient="horizontal", bg=COLORS["bg"],
+                        fg=COLORS["text"], troughcolor=COLORS["bg3"],
+                        highlightthickness=0, sliderlength=16,
+                        font=("Helvetica", 9), length=140,
+                        command=lambda _: self._on_param_change())
+        if resolution is not None:
+            scale_kw["resolution"] = resolution
+        scale = tk.Scale(parent, **scale_kw)
         scale.grid(row=row, column=1, columnspan=2, sticky="w", pady=3)
 
     def _build_actions_section(self, parent):
@@ -452,10 +455,12 @@ class Char2AsciiApp:
                                  f"字体文件不存在: {font_path}", params)
                 return
 
+            call_params = {k: v for k, v in params.items() if k != "input_text"}
             if len(text) == 1:
-                result = convert(text, **params)
+                single_params = {k: v for k, v in call_params.items() if k != "gap"}
+                result = convert(text, **single_params)
             else:
-                result = batch_convert(text, **params)
+                result = batch_convert(text, **call_params)
 
             self._safe_after(self._on_generate_done, result, None, params)
         except ValueError as e:

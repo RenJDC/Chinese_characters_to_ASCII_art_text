@@ -132,6 +132,17 @@ def find_font(preferred=None):
 
 # ─── 底层渲染 ─────────────────────────────────────────────────
 
+_font_cache = {}
+
+
+def _load_font(font_path, size):
+    """按 (path, size) 缓存字体，避免 macOS 多次加载同一文件导致锁定。"""
+    key = (font_path, size)
+    if key not in _font_cache:
+        _font_cache[key] = ImageFont.truetype(font_path, size)
+    return _font_cache[key]
+
+
 def char_to_bitmap(char, font_path, cell_w, cell_h):
     """
     将单个字符渲染为灰度位图。
@@ -155,7 +166,7 @@ def char_to_bitmap(char, font_path, cell_w, cell_h):
 
     font_size = int(min(big_w, big_h) * 0.8)
     try:
-        font = ImageFont.truetype(font_path, font_size)
+        font = _load_font(font_path, font_size)
     except Exception as e:
         raise ValueError(f"字体加载失败 ({os.path.basename(font_path)}): {e}")
 
