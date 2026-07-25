@@ -390,7 +390,6 @@ class Char2AsciiApp:
 
         self.status_var.set("生成中...")
         self._set_buttons_state("disabled")
-        self.root.update_idletasks()
 
         # 主线程读取所有参数，避免子线程访问 tkinter 变量
         font_path = None
@@ -407,6 +406,7 @@ class Char2AsciiApp:
             return
 
         params = {
+            "input_text": text,
             "width": self.width_var.get(),
             "charset_name": self.charset_name.get(),
             "font_path": font_path,
@@ -415,14 +415,16 @@ class Char2AsciiApp:
             "gap": self.gap_var.get(),
         }
 
-        threading.Thread(target=self._do_generate, args=(text, params), daemon=True).start()
+        self.root.after(50, lambda: threading.Thread(
+            target=self._do_generate, args=(text, params), daemon=True
+        ).start())
 
     def _do_generate(self, text, params):
         try:
             font_path = params.get("font_path")
             if font_path and not os.path.isfile(font_path):
-                self.root.after(0, self._on_generate_done, None,
-                                f"字体文件不存在: {font_path}", params)
+                self._safe_after(self._on_generate_done, None,
+                                 f"字体文件不存在: {font_path}", params)
                 return
 
             if len(text) == 1:
@@ -430,43 +432,57 @@ class Char2AsciiApp:
             else:
                 result = batch_convert(text, **params)
 
-            self.root.after(0, self._on_generate_done, result, None, params)
+            self._safe_after(self._on_generate_done, result, None, params)
         except ValueError as e:
-            self.root.after(0, self._on_generate_done, None, str(e), params)
+            self._safe_after(self._on_generate_done, None, str(e), params)
         except Exception as e:
-            self.root.after(0, self._on_generate_done, None,
-                            f"生成失败: {type(e).__name__}: {e}", params)
+            self._safe_after(self._on_generate_done, None,
+                             f"生成失败: {type(e).__name__}: {e}", params)
+
+    def _safe_after(self, callback, *args):
+        try:
+            self.root.after(0, callback, *args)
+        except (RuntimeError, tk.TclError):
+            pass
 
     def _on_generate_done(self, result, error, params):
-        self._set_buttons_state("normal")
-        if error:
-            self.status_var.set(f"错误: {error}")
-            return
+        try:
+            if error:
+                self.status_var.set(f"错误: {error}")
+                return
 
-        self.preview_text.config(state="normal")
-        self.preview_text.delete("1.0", "end")
-        self.preview_text.insert("1.0", result)
-        self.preview_text.config(state="disabled")
+            self.preview_text.config(state="normal")
+            self.preview_text.delete("1.0", "end")
+            self.preview_text.insert("1.0", result or "")
+            self.preview_text.config(state="disabled")
 
-        text = self.input_entry.get().strip()
-        font_label = params.get("font_path", "") or "未找到"
-        self.status_var.set(
-            f"完成 | {len(text)}字 | {params['charset_name']} | "
-            f"宽度{params['width']} | 字体: {os.path.basename(font_label)}"
-        )
+            text = params.get("input_text", "")
+            font_label = params.get("font_path", "") or "未找到"
+            self.status_var.set(
+                f"完成 | {len(text)}字 | {params['charset_name']} | "
+                f"宽度{params['width']} | 字体: {os.path.basename(font_label)}"
+            )
+        finally:
+            self._set_buttons_state("normal")
 
     def _set_buttons_state(self, state):
         for btn in getattr(self, "_action_buttons", []):
-            btn.config(state=state)
+            try:
+                btn.config(state=state)
+            except tk.TclError:
+                pass
 
     def _copy(self):
         content = self.preview_text.get("1.0", "end").rstrip()
         if not content:
             self.status_var.set("无内容可复制")
             return
-        self.root.clipboard_clear()
-        self.root.clipboard_append(content)
-        self.status_var.set("已复制到剪贴板")
+        try:
+            self.root.clipboard_clear()
+            self.root.clipboard_append(content)
+            self.status_var.set("已复制到剪贴板")
+        except tk.TclError:
+            self.status_var.set("复制失败，系统剪贴板不可用")
 
     def _clear(self):
         self.input_entry.delete(0, "end")
