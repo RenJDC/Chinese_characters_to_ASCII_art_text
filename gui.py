@@ -314,7 +314,8 @@ class Char2AsciiApp:
                          command=lambda _: self._on_param_change())
         scale.grid(row=row, column=1, sticky="w", pady=3)
 
-        entry = tk.Entry(parent, textvariable=var, width=5,
+        # 输入框不用 textvariable，手动同步避免光标跳位
+        entry = tk.Entry(parent, width=5,
                          bg=COLORS["bg2"], fg=COLORS["text"],
                          insertbackground=COLORS["accent"],
                          font=("Helvetica", 9), relief="flat",
@@ -322,19 +323,36 @@ class Char2AsciiApp:
                          highlightthickness=1, justify="center")
         entry.grid(row=row, column=2, sticky="w", padx=(4, 0), pady=3)
 
-        def _clamp(_=None):
+        # 变量变化 → 更新输入框显示
+        def _var_to_entry(*_):
             try:
-                val = var.get()
-                if val < from_:
-                    var.set(from_)
-                elif val > to_:
-                    var.set(to_)
+                cur = entry.get()
+                new = str(var.get())
+                if cur != new:
+                    entry.delete(0, "end")
+                    entry.insert(0, new)
             except (tk.TclError, TypeError):
-                var.set(from_)
+                pass
+        var.trace_add("write", _var_to_entry)
+        _var_to_entry()  # 初始同步
+
+        # 回车/失焦 → 从输入框读回变量
+        def _entry_to_var(_=None):
+            try:
+                val = float(entry.get())
+                if val < from_:
+                    val = from_
+                elif val > to_:
+                    val = to_
+                var.set(val)
+            except (ValueError, tk.TclError):
+                # 输入无效，恢复为变量当前值
+                entry.delete(0, "end")
+                entry.insert(0, str(var.get()))
             self._on_param_change()
 
-        entry.bind("<Return>", _clamp)
-        entry.bind("<FocusOut>", _clamp)
+        entry.bind("<Return>", _entry_to_var)
+        entry.bind("<FocusOut>", _entry_to_var)
 
     def _build_actions_section(self, parent):
         frame = tk.Frame(parent, bg=COLORS["bg"])
