@@ -402,6 +402,12 @@ class Char2AsciiApp:
                 font_path = path
                 break
 
+        # 验证字体文件
+        if font_path and not os.path.isfile(font_path):
+            self._set_buttons_state("normal")
+            self.status_var.set(f"字体文件不存在: {font_path}")
+            return
+
         params = {
             "width": self.width_var.get(),
             "charset_name": self.charset_name.get(),
@@ -415,14 +421,23 @@ class Char2AsciiApp:
 
     def _do_generate(self, text, params):
         try:
+            font_path = params.get("font_path")
+            if font_path and not os.path.isfile(font_path):
+                self.root.after(0, self._on_generate_done, None,
+                                f"字体文件不存在: {font_path}", params)
+                return
+
             if len(text) == 1:
                 result = convert(text, **params)
             else:
                 result = batch_convert(text, **params)
 
             self.root.after(0, self._on_generate_done, result, None, params)
+        except ValueError as e:
+            self.root.after(0, self._on_generate_done, None, str(e), params)
         except Exception as e:
-            self.root.after(0, self._on_generate_done, None, e, params)
+            self.root.after(0, self._on_generate_done, None,
+                            f"生成失败: {type(e).__name__}: {e}", params)
 
     def _on_generate_done(self, result, error, params):
         self._set_buttons_state("normal")

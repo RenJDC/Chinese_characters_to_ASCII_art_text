@@ -144,6 +144,9 @@ def char_to_bitmap(char, font_path, cell_w, cell_h):
 
     Returns:
         PIL.Image: 灰度图（L 模式），笔画白色(255)，背景黑色(0)
+
+    Raises:
+        ValueError: 字体加载失败时抛出
     """
     scale = 4
     big_w, big_h = cell_w * scale, cell_h * scale
@@ -151,7 +154,10 @@ def char_to_bitmap(char, font_path, cell_w, cell_h):
     draw = ImageDraw.Draw(img)
 
     font_size = int(min(big_w, big_h) * 0.8)
-    font = ImageFont.truetype(font_path, font_size)
+    try:
+        font = ImageFont.truetype(font_path, font_size)
+    except Exception as e:
+        raise ValueError(f"字体加载失败 ({os.path.basename(font_path)}): {e}")
 
     bbox = draw.textbbox((0, 0), char, font=font)
     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
