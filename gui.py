@@ -268,12 +268,12 @@ class Char2AsciiApp:
                   highlightbackground=COLORS["border"], highlightthickness=1,
                   command=self._browse_font).pack(side="right")
 
-        # 宽度：滑块步长 5，输入框精度 0.1
-        self._make_slider(inner, "宽度", self.width_var, 10, 100, 1, step=5)
-        # 间距：滑块步长 1，输入框精度 0.1
-        self._make_slider(inner, "间距", self.gap_var, -10, 10, 2, step=1)
-        # 高度比：滑块步长 0.5，输入框精度 0.1
-        self._make_slider(inner, "高度比", self.height_ratio_var, 0.3, 3.0, 3, step=0.5)
+        # 宽度
+        self._make_slider(inner, "宽度", self.width_var, 10, 100, 1, resolution=0.1)
+        # 间距
+        self._make_slider(inner, "间距", self.gap_var, -10, 10, 2, resolution=0.1)
+        # 高度比
+        self._make_slider(inner, "高度比", self.height_ratio_var, 0.3, 3.0, 3, resolution=0.1)
 
         # 反色
         invert_frame = tk.Frame(inner, bg=COLORS["bg"])
@@ -300,27 +300,20 @@ class Char2AsciiApp:
                 self.font_combo["values"] = [f[0] for f in self.available_fonts]
             self.font_var.set(name)
 
-    def _make_slider(self, parent, label, var, from_, to_, row, step=1):
-        """step: 滑块拖动步长（粗调），输入框始终支持 0.1 精度"""
+    def _make_slider(self, parent, label, var, from_, to_, row, resolution=0.1):
         tk.Label(parent, text=label, bg=COLORS["bg"], fg=COLORS["text2"],
                  font=("Helvetica", 10), width=5, anchor="w").grid(
             row=row, column=0, sticky="w", pady=3)
 
-        # 滑块：独立 IntVar，范围 = 实际范围 × (1/step)，拖动步长 1
-        # 例如 step=5, from_=10, to_=100 → 滑块范围 2~20，每格=5
-        inv = 1 / step
-        sb_from = int(round(from_ * inv))
-        sb_to = int(round(to_ * inv))
-        int_var = tk.IntVar(value=int(round(var.get() * inv)))
-        scale = tk.Scale(parent, variable=int_var, from_=sb_from, to=sb_to,
+        scale = tk.Scale(parent, variable=var, from_=from_, to=to_,
                          orient="horizontal", bg=COLORS["bg"],
                          fg=COLORS["text"], troughcolor=COLORS["bg3"],
                          highlightthickness=0, sliderlength=16,
                          font=("Helvetica", 9), length=110,
-                         command=lambda _: self._on_slider_move(var, int_var, inv))
+                         resolution=resolution,
+                         command=lambda _: self._on_param_change())
         scale.grid(row=row, column=1, sticky="w", pady=3)
 
-        # 输入框：直接绑定原始变量，支持 0.1 精度
         entry = tk.Entry(parent, textvariable=var, width=5,
                          bg=COLORS["bg2"], fg=COLORS["text"],
                          insertbackground=COLORS["accent"],
@@ -329,15 +322,6 @@ class Char2AsciiApp:
                          highlightthickness=1, justify="center")
         entry.grid(row=row, column=2, sticky="w", padx=(4, 0), pady=3)
 
-        # 输入框变化 → 同步滑块位置
-        def _entry_to_slider(*_):
-            try:
-                int_var.set(int(round(var.get() * inv)))
-            except (tk.TclError, TypeError):
-                pass
-        var.trace_add("write", _entry_to_slider)
-
-        # 回车/失焦：校验范围
         def _clamp(_=None):
             try:
                 val = var.get()
@@ -351,11 +335,6 @@ class Char2AsciiApp:
 
         entry.bind("<Return>", _clamp)
         entry.bind("<FocusOut>", _clamp)
-
-    def _on_slider_move(self, var, int_var, inv):
-        """滑块拖动时同步到原始变量"""
-        var.set(int_var.get() * (1 / inv))
-        self._on_param_change()
 
     def _build_actions_section(self, parent):
         frame = tk.Frame(parent, bg=COLORS["bg"])
