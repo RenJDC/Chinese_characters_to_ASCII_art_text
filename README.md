@@ -46,7 +46,12 @@
 pip install Pillow
 ```
 
-macOS 自带中文字体（PingFang），无需额外安装字体。
+字体自动检测，支持 macOS / Linux / Windows：
+- **macOS**: PingFang、STHeiti、Songti
+- **Linux**: WenQuanYi、Noto Sans CJK
+- **Windows**: 微软雅黑、黑体、宋体
+
+如需指定字体，用 `-f` 参数：
 
 ## 用法
 
@@ -216,4 +221,4 @@ python3 char2ascii.py "操"
 
 - 笔画简单的字（一、大、口）效果好，笔画复杂的字（赢、齉）会丢失细节
 - 宽度越大细节越多，但渲染越慢
-- macOS 默认使用 PingFang 字体，Linux/Windows 需指定中文字体路径
+- 如自动检测不到字体，用 `-f /path/to/font.ttf` 手动指定

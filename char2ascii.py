@@ -48,15 +48,41 @@ DEFAULT_FONT = "/System/Library/Fonts/PingFang.ttc"
 
 def find_font(preferred=None):
     import os
-    font_paths = [
-        DEFAULT_FONT,
-        "/System/Library/Fonts/STHeiti Medium.ttc",
-        "/System/Library/Fonts/STHeiti Light.ttc",
-        "/System/Library/Fonts/Supplemental/Songti.ttc",
-        "/Library/Fonts/Arial Unicode.ttf",
-    ]
+    import platform
+
     if preferred and os.path.isfile(preferred):
         return preferred
+
+    # 按平台查找中文字体
+    system = platform.system()
+    if system == "Darwin":  # macOS
+        font_paths = [
+            "/System/Library/Fonts/PingFang.ttc",
+            "/System/Library/Fonts/STHeiti Medium.ttc",
+            "/System/Library/Fonts/STHeiti Light.ttc",
+            "/System/Library/Fonts/Supplemental/Songti.ttc",
+            "/Library/Fonts/Arial Unicode.ttf",
+        ]
+    elif system == "Linux":
+        font_paths = [
+            "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+            "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
+        ]
+    elif system == "Windows":
+        windir = os.environ.get("WINDIR", r"C:\Windows")
+        font_paths = [
+            os.path.join(windir, "Fonts", "msyh.ttc"),
+            os.path.join(windir, "Fonts", "simhei.ttf"),
+            os.path.join(windir, "Fonts", "simsun.ttc"),
+            os.path.join(windir, "Fonts", "msyhbd.ttc"),
+        ]
+    else:
+        font_paths = []
+
     for p in font_paths:
         if os.path.isfile(p):
             return p
