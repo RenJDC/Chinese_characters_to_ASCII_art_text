@@ -9,10 +9,38 @@ import sys
 from PIL import Image, ImageDraw, ImageFont
 
 CHARSETS = {
-    "classic":  "@%#WMo=-~:. ",
-    "simple":   "@#=-. ",
-    "blocks":   "█▓▒░ ",
-    "minimal":  "#=-. ",
+    # 经典 ASCII 密度映射
+    "classic":      "@%#WMo=-~:. ",
+    # 简洁高对比
+    "simple":       "@#=-. ",
+    # 方块像素风（像素画感）
+    "blocks":       "█▓▒░ ",
+    # 极简
+    "minimal":      "#=-. ",
+    # 3D 立体阴影（用立体字符营造厚度感）
+    "3d":           "@%#WMBRW$&8XOZmwqpdbao*+=-:. ",
+    # 斜线流动风（用斜线营造动感）
+    "italic":       "///\\\\\\|||;;;:::,,,;;;|||\\\\\\/// ",
+    # 粗块厚重风（超密集，适合大标题）
+    "bold":         "█▇▆▅▄▃▂▁ ",
+    # 细线极简风（细线条，适合窄栏）
+    "thin":         "─━═║┃┆┇┊┋ ",
+    # 哥特复古风（棱角字符）
+    "gothic":       "▓█▄▀▌▐■□◆◇●○ ",
+    # 涂鸦艺术风（不规则符号）
+    "graffiti":     "@%#MW&8B$S#%W@ ",
+    # 渐变灰阶（平滑过渡）
+    "gradient":     "@%#WMo=-~^:;,. ",
+    # Braille 精细风（Unicode 点阵，细节最丰富）
+    "braille":      "⣿⣷⣯⣟⡿⢿⣻⣽⣾⣶⣴⣲⣳⣱⠀⠀ ",
+    # 半块像素风（比 blocks 更精细）
+    "halfblock":    "▀▄█▓▒░ ",
+    # 制表符几何风
+    "box":          "█▓▒░╔╗╚╝═║┌┐└┘├┤┬┴┼ ",
+    # 圆点矩阵风
+    "dots":         "●◉◎∘○○∘◎◉● ",
+    # 星号装饰风
+    "stars":        "★☆✦✧✪✫✬✭✮✯ ",
 }
 
 DEFAULT_FONT = "/System/Library/Fonts/PingFang.ttc"
