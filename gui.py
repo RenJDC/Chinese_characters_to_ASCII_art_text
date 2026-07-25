@@ -5,8 +5,10 @@
 """
 
 import tkinter as tk
-from tkinter import ttk, font as tkfont
+from tkinter import ttk, font as tkfont, filedialog
 import threading
+import os
+import platform
 from char2ascii import convert, batch_convert, CHARSETS, find_font
 
 
@@ -27,6 +29,61 @@ COLORS = {
 }
 
 
+def scan_fonts():
+    """扫描本地 fonts/ 目录和系统字体，返回 [(显示名, 路径), ...]"""
+    fonts = []
+    seen = set()
+
+    # 项目 fonts/ 目录
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    local_dir = os.path.join(script_dir, "fonts")
+    if os.path.isdir(local_dir):
+        for f in sorted(os.listdir(local_dir)):
+            if f.lower().endswith((".ttf", ".otf", ".ttc")):
+                path = os.path.join(local_dir, f)
+                name = os.path.splitext(f)[0]
+                if path not in seen:
+                    fonts.append((f"[本地] {name}", path))
+                    seen.add(path)
+
+    # 系统字体
+    system = platform.system()
+    if system == "Darwin":
+        sys_fonts = [
+            ("/System/Library/Fonts/PingFang.ttc", "PingFang"),
+            ("/System/Library/Fonts/STHeiti Medium.ttc", "STHeiti Medium"),
+            ("/System/Library/Fonts/STHeiti Light.ttc", "STHeiti Light"),
+            ("/System/Library/Fonts/Supplemental/Songti.ttc", "Songti"),
+            ("/Library/Fonts/Arial Unicode.ttf", "Arial Unicode"),
+        ]
+    elif system == "Linux":
+        sys_fonts = [
+            ("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc", "WenQuanYi Zen Hei"),
+            ("/usr/share/fonts/truetype/wqy/wqy-microhei.ttc", "WenQuanYi Micro Hei"),
+            ("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", "Noto Sans CJK"),
+            ("/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc", "Noto Sans CJK"),
+            ("/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc", "Noto Sans CJK"),
+            ("/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf", "Droid Sans Fallback"),
+        ]
+    elif system == "Windows":
+        windir = os.environ.get("WINDIR", r"C:\Windows")
+        sys_fonts = [
+            (os.path.join(windir, "Fonts", "msyh.ttc"), "Microsoft YaHei"),
+            (os.path.join(windir, "Fonts", "simhei.ttf"), "SimHei"),
+            (os.path.join(windir, "Fonts", "simsun.ttc"), "SimSun"),
+            (os.path.join(windir, "Fonts", "msyhbd.ttc"), "Microsoft YaHei Bold"),
+        ]
+    else:
+        sys_fonts = []
+
+    for path, name in sys_fonts:
+        if os.path.isfile(path) and path not in seen:
+            fonts.append((f"[系统] {name}", path))
+            seen.add(path)
+
+    return fonts
+
+
 class Char2AsciiApp:
     def __init__(self, root):
         self.root = root
@@ -37,11 +94,17 @@ class Char2AsciiApp:
 
         # 状态
         self.charset_name = tk.StringVar(value="classic")
+        self.font_var = tk.StringVar()
         self.width_var = tk.IntVar(value=40)
         self.gap_var = tk.IntVar(value=2)
         self.height_ratio_var = tk.DoubleVar(value=1.0)
         self.invert_var = tk.BooleanVar(value=False)
         self.status_var = tk.StringVar(value="就绪")
+
+        # 扫描可用字体
+        self.available_fonts = scan_fonts()
+        if self.available_fonts:
+            self.font_var.set(self.available_fonts[0][0])
 
         self._build_ui()
         self._apply_theme()
@@ -162,17 +225,36 @@ class Char2AsciiApp:
         inner = tk.Frame(frame, bg=COLORS["bg"])
         inner.pack(fill="x", padx=12, pady=(8, 8))
 
+        # 字体选择
+        font_frame = tk.Frame(inner, bg=COLORS["bg"])
+        font_frame.grid(row=0, column=0, columnspan=3, sticky="ew", pady=(0, 6))
+
+        tk.Label(font_frame, text="字体", bg=COLORS["bg"], fg=COLORS["text2"],
+                 font=("Helvetica", 10), width=5, anchor="w").pack(side="left")
+
+        font_names = [f[0] for f in self.available_fonts] if self.available_fonts else ["无可用字体"]
+        self.font_combo = ttk.Combobox(font_frame, textvariable=self.font_var,
+                                       values=font_names, state="readonly",
+                                       font=("Helvetica", 10))
+        self.font_combo.pack(side="left", fill="x", expand=True, padx=(0, 4))
+
+        # 浏览按钮
+        tk.Button(font_frame, text="...", bg=COLORS["bg2"], fg=COLORS["text2"],
+                  font=("Helvetica", 10), relief="flat", padx=4, pady=0,
+                  highlightbackground=COLORS["border"], highlightthickness=1,
+                  command=self._browse_font).pack(side="right")
+
         # 宽度
-        self._make_slider(inner, "宽度", self.width_var, 10, 100, 0)
+        self._make_slider(inner, "宽度", self.width_var, 10, 100, 1)
         # 间距
-        self._make_slider(inner, "间距", self.gap_var, 0, 10, 1)
+        self._make_slider(inner, "间距", self.gap_var, 0, 10, 2)
         # 高度比
-        self._make_slider(inner, "高度比", self.height_ratio_var, 0.3, 3.0, 2,
+        self._make_slider(inner, "高度比", self.height_ratio_var, 0.3, 3.0, 3,
                           fmt=":.1f")
 
         # 反色
         invert_frame = tk.Frame(inner, bg=COLORS["bg"])
-        invert_frame.grid(row=3, column=0, columnspan=3, sticky="w", pady=(6, 0))
+        invert_frame.grid(row=4, column=0, columnspan=3, sticky="w", pady=(6, 0))
 
         tk.Checkbutton(invert_frame, text="反色（黑底白字）",
                        variable=self.invert_var,
@@ -182,6 +264,18 @@ class Char2AsciiApp:
                        activeforeground=COLORS["accent"],
                        font=("Helvetica", 10),
                        command=self._on_param_change).pack(anchor="w")
+
+    def _browse_font(self):
+        path = filedialog.askopenfilename(
+            title="选择字体文件",
+            filetypes=[("字体文件", "*.ttf *.otf *.ttc"), ("所有文件", "*.*")]
+        )
+        if path:
+            name = f"[自定义] {os.path.splitext(os.path.basename(path))[0]}"
+            if path not in [f[1] for f in self.available_fonts]:
+                self.available_fonts.insert(0, (name, path))
+                self.font_combo["values"] = [f[0] for f in self.available_fonts]
+            self.font_var.set(name)
 
     def _make_slider(self, parent, label, var, from_, to_, row, fmt=":d"):
         tk.Label(parent, text=label, bg=COLORS["bg"], fg=COLORS["text2"],
@@ -304,9 +398,18 @@ class Char2AsciiApp:
 
     def _do_generate(self, text):
         try:
+            # 获取选中的字体路径
+            font_path = None
+            selected = self.font_var.get()
+            for name, path in self.available_fonts:
+                if name == selected:
+                    font_path = path
+                    break
+
             kwargs = {
                 "width": self.width_var.get(),
                 "charset_name": self.charset_name.get(),
+                "font_path": font_path,
                 "invert": self.invert_var.get(),
                 "height_ratio": self.height_ratio_var.get(),
                 "gap": self.gap_var.get(),
