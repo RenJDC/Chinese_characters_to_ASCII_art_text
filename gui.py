@@ -29,6 +29,16 @@ COLORS = {
 }
 
 
+def _font_ok(path):
+    """快速验证字体文件是否可被 PIL 加载"""
+    try:
+        from PIL import ImageFont
+        ImageFont.truetype(path, 20)
+        return True
+    except Exception:
+        return False
+
+
 def scan_fonts():
     """扫描本地 fonts/ 目录和系统字体，返回 [(显示名, 路径), ...]"""
     fonts = []
@@ -38,13 +48,28 @@ def scan_fonts():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     local_dir = os.path.join(script_dir, "fonts")
     if os.path.isdir(local_dir):
-        for f in sorted(os.listdir(local_dir)):
-            if f.lower().endswith((".ttf", ".otf", ".ttc")):
-                path = os.path.join(local_dir, f)
-                name = os.path.splitext(f)[0]
-                if path not in seen:
-                    fonts.append((f"[本地] {name}", path))
-                    seen.add(path)
+        # 优先字体列表（和 find_font 一致）
+        preferred = [
+            "NotoSansSC-Regular.otf",
+            "NotoSansSC-Bold.otf",
+            "NotoSansSC-Medium.otf",
+            "SourceHanSansSC-Regular.otf",
+            "WenQuanYiMicroHei.ttf",
+        ]
+        ordered = preferred + [f for f in sorted(os.listdir(local_dir))
+                               if f.lower().endswith((".ttf", ".otf", ".ttc"))
+                               and f not in preferred]
+        for f in ordered:
+            if not f.lower().endswith((".ttf", ".otf", ".ttc")):
+                continue
+            path = os.path.join(local_dir, f)
+            if path in seen or not os.path.isfile(path):
+                continue
+            if not _font_ok(path):
+                continue
+            name = os.path.splitext(f)[0]
+            fonts.append((f"[本地] {name}", path))
+            seen.add(path)
 
     # 系统字体
     system = platform.system()
@@ -77,7 +102,7 @@ def scan_fonts():
         sys_fonts = []
 
     for path, name in sys_fonts:
-        if os.path.isfile(path) and path not in seen:
+        if os.path.isfile(path) and path not in seen and _font_ok(path):
             fonts.append((f"[系统] {name}", path))
             seen.add(path)
 
