@@ -126,14 +126,48 @@ python3 char2ascii.py 龙 -c "█▓▒░ "
 ## Python 调用
 
 ```python
-from char2ascii import convert, batch_convert
+from char2ascii import convert, batch_convert, CHARSETS, find_font
 
-# 单字
+# 单字转换
 print(convert("龙", width=40, charset_name="classic"))
 
 # 多字并排
 print(batch_convert("龙猫", width=30, charset_name="blocks", gap=3))
+
+# 自定义字符集（从密到疏排列的字符串）
+print(convert("龙", width=30, charset_name="█▓▒░ "))
+
+# 指定字体
+print(convert("龙", font_path="/path/to/font.ttf"))
+
+# 反色（黑底白字）
+print(convert("龙", invert=True))
+
+# 查看可用字符集
+print(list(CHARSETS.keys()))
+
+# 查找字体路径
+font = find_font()
 ```
+
+### API 参数
+
+| 函数 | 参数 | 类型 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `convert` | `char` | str | - | 单个汉字 |
+| | `width` | int | 40 | 输出宽度（字符数） |
+| | `charset_name` | str | `"classic"` | 字符集名称或自定义字符串 |
+| | `font_path` | str | None | 字体路径，None 自动查找 |
+| | `invert` | bool | False | 反转明暗 |
+| | `height_ratio` | float | 1.0 | 高度比例 |
+| `batch_convert` | `text` | str | - | 多个汉字 |
+| | `width` | int | 40 | 每字输出宽度 |
+| | `charset_name` | str | `"classic"` | 字符集名称或自定义字符串 |
+| | `font_path` | str | None | 字体路径 |
+| | `invert` | bool | False | 反转明暗 |
+| | `height_ratio` | float | 1.0 | 高度比例 |
+| | `gap` | int | 2 | 字间空格数 |
+| `find_font` | `preferred` | str | None | 优先字体路径 |
 
 ## 效果示例
 

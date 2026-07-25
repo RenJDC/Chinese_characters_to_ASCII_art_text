@@ -1,59 +1,80 @@
 #!/usr/bin/env python3
 """
 汉字 → ASCII 艺术字转换器
-将单个汉字渲染为位图，再用 ASCII 字符密度映射输出。
+
+API 用法:
+    from char2ascii import convert, batch_convert, CHARSETS, find_font
+
+    # 单字转换
+    print(convert("龙", width=40, charset_name="classic"))
+
+    # 多字并排
+    print(batch_convert("龙猫", width=30, charset_name="blocks", gap=3))
+
+    # 查看可用字符集
+    print(list(CHARSETS.keys()))
+
+    # 查找字体
+    font_path = find_font()
 """
 
 import argparse
+import os
 import sys
 from PIL import Image, ImageDraw, ImageFont
 
+__all__ = [
+    "CHARSETS",
+    "find_font",
+    "char_to_bitmap",
+    "render_ascii",
+    "convert",
+    "batch_convert",
+]
+
+# ─── 字符集定义 ───────────────────────────────────────────────
+
 CHARSETS = {
-    # 经典 ASCII 密度映射
-    "classic":      "@%#WMo=-~:. ",
-    # 简洁高对比
-    "simple":       "@#=-. ",
-    # 方块像素风（像素画感）
-    "blocks":       "█▓▒░ ",
-    # 极简
-    "minimal":      "#=-. ",
-    # 3D 立体阴影（用立体字符营造厚度感）
-    "3d":           "@%#WMBRW$&8XOZmwqpdbao*+=-:. ",
-    # 斜线流动风（用斜线营造动感）
-    "italic":       "///\\\\\\|||;;;:::,,,;;;|||\\\\\\/// ",
-    # 粗块厚重风（超密集，适合大标题）
-    "bold":         "█▇▆▅▄▃▂▁ ",
-    # 细线极简风（细线条，适合窄栏）
-    "thin":         "─━═║┃┆┇┊┋ ",
-    # 哥特复古风（棱角字符）
-    "gothic":       "▓█▄▀▌▐■□◆◇●○ ",
-    # 涂鸦艺术风（不规则符号）
-    "graffiti":     "@%#MW&8B$S#%W@ ",
-    # 渐变灰阶（平滑过渡）
-    "gradient":     "@%#WMo=-~^:;,. ",
-    # Braille 精细风（Unicode 点阵，细节最丰富）
-    "braille":      "⣿⣷⣯⣟⡿⢿⣻⣽⣾⣶⣴⣲⣳⣱⠀⠀ ",
-    # 半块像素风（比 blocks 更精细）
-    "halfblock":    "▀▄█▓▒░ ",
-    # 制表符几何风
-    "box":          "█▓▒░╔╗╚╝═║┌┐└┘├┤┬┴┼ ",
-    # 圆点矩阵风
-    "dots":         "●◉◎∘○○∘◎◉● ",
-    # 星号装饰风
-    "stars":        "★☆✦✧✪✫✬✭✮✯ ",
+    "classic":   "@%#WMo=-~:. ",
+    "simple":    "@#=-. ",
+    "blocks":    "█▓▒░ ",
+    "minimal":   "#=-. ",
+    "3d":        "@%#WMBRW$&8XOZmwqpdbao*+=-:. ",
+    "italic":    "///\\\\\\|||;;;:::,,,;;;|||\\\\\\/// ",
+    "bold":      "█▇▆▅▄▃▂▁ ",
+    "thin":      "─━═║┃┆┇┊┋ ",
+    "gothic":    "▓█▄▀▌▐■□◆◇●○ ",
+    "graffiti":  "@%#MW&8B$S#%W@ ",
+    "gradient":  "@%#WMo=-~^:;,. ",
+    "braille":   "⣿⣷⣯⣟⡿⢿⣻⣽⣾⣶⣴⣲⣳⣱⠀⠀ ",
+    "halfblock": "▀▄█▓▒░ ",
+    "box":       "█▓▒░╔╗╚╝═║┌┐└┘├┤┬┴┼ ",
+    "dots":      "●◉◎∘○○∘◎◉● ",
+    "stars":     "★☆✦✧✪✫✬✭✮✯ ",
 }
 
-DEFAULT_FONT = "/System/Library/Fonts/PingFang.ttc"
 
+# ─── 字体查找 ─────────────────────────────────────────────────
 
 def find_font(preferred=None):
-    import os
-    import platform
+    """
+    查找可用的中文字体。
 
+    查找顺序:
+        1. preferred 参数指定的路径
+        2. 项目 fonts/ 目录下的字体
+        3. 系统字体（按平台自动检测）
+
+    Args:
+        preferred: 优先使用的字体文件路径，为 None 时自动查找
+
+    Returns:
+        str: 字体文件路径，找不到返回 None
+    """
     if preferred and os.path.isfile(preferred):
         return preferred
 
-    # 优先从项目 fonts/ 目录查找
+    # 项目 fonts/ 目录
     script_dir = os.path.dirname(os.path.abspath(__file__))
     local_fonts_dir = os.path.join(script_dir, "fonts")
     local_font_prefs = [
@@ -68,12 +89,12 @@ def find_font(preferred=None):
             path = os.path.join(local_fonts_dir, name)
             if os.path.isfile(path):
                 return path
-        # 找 fonts/ 下任意 ttf/otf/ttc 文件
         for f in sorted(os.listdir(local_fonts_dir)):
             if f.lower().endswith((".ttf", ".otf", ".ttc")):
                 return os.path.join(local_fonts_dir, f)
 
-    # 回退到系统字体
+    # 系统字体
+    import platform
     system = platform.system()
     if system == "Darwin":
         font_paths = [
@@ -109,9 +130,21 @@ def find_font(preferred=None):
     return None
 
 
+# ─── 底层渲染 ─────────────────────────────────────────────────
+
 def char_to_bitmap(char, font_path, cell_w, cell_h):
-    """渲染汉字到灰度位图，笔画白色，背景黑色"""
-    # 放大渲染再缩放，抗锯齿效果更好
+    """
+    将单个字符渲染为灰度位图。
+
+    Args:
+        char:       要渲染的字符（单个）
+        font_path:  字体文件路径
+        cell_w:     输出宽度（像素）
+        cell_h:     输出高度（像素）
+
+    Returns:
+        PIL.Image: 灰度图（L 模式），笔画白色(255)，背景黑色(0)
+    """
     scale = 4
     big_w, big_h = cell_w * scale, cell_h * scale
     img = Image.new("L", (big_w, big_h), 0)
@@ -126,13 +159,22 @@ def char_to_bitmap(char, font_path, cell_w, cell_h):
     y = (big_h - th) // 2 - bbox[1]
     draw.text((x, y), char, fill=255, font=font)
 
-    # 缩小回来取平均亮度，更平滑
     img = img.resize((cell_w, cell_h), Image.LANCZOS)
     return img
 
 
 def render_ascii(img, charset, invert=False):
-    """将灰度图映射为 ASCII 字符串"""
+    """
+    将灰度图映射为 ASCII 字符串。
+
+    Args:
+        img:      PIL.Image 灰度图
+        charset:  字符集字符串（从密到疏排列）
+        invert:   是否反转明暗
+
+    Returns:
+        str: 多行 ASCII 字符串
+    """
     w, h = img.size
     lines = []
     for y in range(h):
@@ -141,7 +183,6 @@ def render_ascii(img, charset, invert=False):
             px = img.getpixel((x, y))
             if invert:
                 px = 255 - px
-            # 亮→稀疏字符, 暗→密集字符（白底黑字效果）
             idx = int((1 - px / 255) * (len(charset) - 1))
             idx = max(0, min(idx, len(charset) - 1))
             line.append(charset[idx])
@@ -149,12 +190,34 @@ def render_ascii(img, charset, invert=False):
     return "\n".join(lines)
 
 
-def convert(char, width=40, charset_name="classic", font_path=None, invert=False, height_ratio=1.0):
+# ─── 高层 API ─────────────────────────────────────────────────
+
+def convert(char, width=40, charset_name="classic", font_path=None,
+            invert=False, height_ratio=1.0):
+    """
+    将单个汉字转换为 ASCII 艺术字。
+
+    Args:
+        char:          要转换的汉字（单个字符）
+        width:         输出宽度，即每行字符数（默认 40）
+        charset_name:  字符集名称或自定义字符集字符串（默认 "classic"）
+        font_path:     字体文件路径，None 时自动查找
+        invert:        是否反转明暗（默认 False，白底黑字）
+        height_ratio:  高度与宽度的比例（默认 1.0）
+
+    Returns:
+        str: 多行 ASCII 艺术字字符串
+
+    Raises:
+        ValueError: 找不到字体时抛出
+
+    Example:
+        >>> print(convert("龙", width=30, charset_name="braille"))
+    """
     charset = CHARSETS.get(charset_name, charset_name)
     font = find_font(font_path)
     if not font:
-        print("错误: 未找到中文字体", file=sys.stderr)
-        sys.exit(1)
+        raise ValueError("未找到中文字体，请用 font_path 参数指定，或放入 fonts/ 目录")
 
     cell_w = width
     cell_h = int(width * height_ratio)
@@ -164,13 +227,32 @@ def convert(char, width=40, charset_name="classic", font_path=None, invert=False
 
 
 def batch_convert(text, width=40, charset_name="classic", font_path=None,
-                   invert=False, height_ratio=1.0, gap=2):
-    """多字并排渲染，gap 控制字间空格数"""
+                  invert=False, height_ratio=1.0, gap=2):
+    """
+    将多个汉字并排转换为 ASCII 艺术字。
+
+    Args:
+        text:          要转换的汉字字符串（多个字符并排显示）
+        width:         每个字符的输出宽度（默认 40）
+        charset_name:  字符集名称或自定义字符集字符串（默认 "classic"）
+        font_path:     字体文件路径，None 时自动查找
+        invert:        是否反转明暗（默认 False）
+        height_ratio:  高度与宽度的比例（默认 1.0）
+        gap:           字符之间的空格数（默认 2）
+
+    Returns:
+        str: 多行 ASCII 艺术字字符串（多字并排）
+
+    Raises:
+        ValueError: 找不到字体时抛出
+
+    Example:
+        >>> print(batch_convert("龙猫", width=25, charset_name="blocks"))
+    """
     charset = CHARSETS.get(charset_name, charset_name)
     font = find_font(font_path)
     if not font:
-        print("错误: 未找到中文字体", file=sys.stderr)
-        sys.exit(1)
+        raise ValueError("未找到中文字体，请用 font_path 参数指定，或放入 fonts/ 目录")
 
     cell_w = width
     cell_h = int(width * height_ratio)
@@ -194,16 +276,18 @@ def batch_convert(text, width=40, charset_name="classic", font_path=None,
     return "\n".join(result_lines)
 
 
+# ─── CLI ──────────────────────────────────────────────────────
+
 def main():
     parser = argparse.ArgumentParser(description="汉字 → ASCII 艺术字")
     parser.add_argument("char", nargs="?", help="要转换的汉字（单个或多个）")
     parser.add_argument("-w", "--width", type=int, default=40, help="输出宽度（字符数，默认40）")
-    parser.add_argument("-H", "--height-ratio", type=float, default=1.0, help="高度比例（默认1.0，即宽=高）")
+    parser.add_argument("-H", "--height-ratio", type=float, default=1.0, help="高度比例（默认1.0）")
     parser.add_argument("-c", "--charset", default="classic",
                         choices=list(CHARSETS.keys()),
                         help="字符集（默认 classic）")
     parser.add_argument("-f", "--font", default=None, help="字体路径")
-    parser.add_argument("-i", "--invert", action="store_true", help="反转明暗（黑底白字 ↔ 白底黑字）")
+    parser.add_argument("-i", "--invert", action="store_true", help="反转明暗")
     parser.add_argument("-g", "--gap", type=int, default=2, help="多字间距空格数（默认2）")
     parser.add_argument("--list-charsets", action="store_true", help="列出可用字符集")
     args = parser.parse_args()
@@ -251,7 +335,6 @@ def main():
             if text.lower() in ("q", "quit", "exit"):
                 break
 
-            # 交互命令
             if text.startswith("/"):
                 parts = text.split(maxsplit=1)
                 cmd = parts[0].lower()
