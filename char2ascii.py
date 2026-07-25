@@ -53,9 +53,29 @@ def find_font(preferred=None):
     if preferred and os.path.isfile(preferred):
         return preferred
 
-    # 按平台查找中文字体
+    # 优先从项目 fonts/ 目录查找
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    local_fonts_dir = os.path.join(script_dir, "fonts")
+    local_font_prefs = [
+        "NotoSansSC-Regular.otf",
+        "NotoSansSC-Bold.otf",
+        "NotoSansSC-Medium.otf",
+        "SourceHanSansSC-Regular.otf",
+        "WenQuanYiMicroHei.ttf",
+    ]
+    if os.path.isdir(local_fonts_dir):
+        for name in local_font_prefs:
+            path = os.path.join(local_fonts_dir, name)
+            if os.path.isfile(path):
+                return path
+        # 找 fonts/ 下任意 ttf/otf/ttc 文件
+        for f in sorted(os.listdir(local_fonts_dir)):
+            if f.lower().endswith((".ttf", ".otf", ".ttc")):
+                return os.path.join(local_fonts_dir, f)
+
+    # 回退到系统字体
     system = platform.system()
-    if system == "Darwin":  # macOS
+    if system == "Darwin":
         font_paths = [
             "/System/Library/Fonts/PingFang.ttc",
             "/System/Library/Fonts/STHeiti Medium.ttc",

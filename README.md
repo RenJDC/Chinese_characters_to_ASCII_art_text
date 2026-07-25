@@ -46,12 +46,15 @@
 pip install Pillow
 ```
 
-字体自动检测，支持 macOS / Linux / Windows：
-- **macOS**: PingFang、STHeiti、Songti
-- **Linux**: WenQuanYi、Noto Sans CJK
-- **Windows**: 微软雅黑、黑体、宋体
+### 字体
 
-如需指定字体，用 `-f` 参数：
+项目自带 `fonts/` 目录，内置 Noto Sans CJK（Google 开源，SIL OFL 许可），开箱即用无需配置。
+
+如需使用其他字体：
+- 放入 `fonts/` 目录即可自动识别（支持 `.ttf` `.otf` `.ttc`）
+- 或用 `-f /path/to/font.ttf` 手动指定
+
+查找优先级：`-f` 参数 → `fonts/` 目录 → 系统字体
 
 ## 用法
 
