@@ -146,6 +146,7 @@ python3 char2ascii.py "人杰地才" -c gradient -g 0 -H 1 -w 18
   ..          ..    ..   .. ..  .           .......          ....
 ```
 
+```
 python3 char2ascii.py "操"
                                         
                                         
@@ -184,8 +185,9 @@ python3 char2ascii.py "操"
     . ~===: .   ..   . =M- .   .  .     
            .  ..                ..      
       .....            ...              
-                                        
-                                        
+                                         
+                                         
+```
 
 ## 交互模式
 
