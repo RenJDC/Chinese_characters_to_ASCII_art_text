@@ -394,37 +394,37 @@ class Char2AsciiApp:
         self._set_buttons_state("disabled")
         self.root.update_idletasks()
 
-        threading.Thread(target=self._do_generate, args=(text,), daemon=True).start()
+        # 主线程读取所有参数，避免子线程访问 tkinter 变量
+        font_path = None
+        selected = self.font_var.get()
+        for name, path in self.available_fonts:
+            if name == selected:
+                font_path = path
+                break
 
-    def _do_generate(self, text):
+        params = {
+            "width": self.width_var.get(),
+            "charset_name": self.charset_name.get(),
+            "font_path": font_path,
+            "invert": self.invert_var.get(),
+            "height_ratio": self.height_ratio_var.get(),
+            "gap": self.gap_var.get(),
+        }
+
+        threading.Thread(target=self._do_generate, args=(text, params), daemon=True).start()
+
+    def _do_generate(self, text, params):
         try:
-            # 获取选中的字体路径
-            font_path = None
-            selected = self.font_var.get()
-            for name, path in self.available_fonts:
-                if name == selected:
-                    font_path = path
-                    break
-
-            kwargs = {
-                "width": self.width_var.get(),
-                "charset_name": self.charset_name.get(),
-                "font_path": font_path,
-                "invert": self.invert_var.get(),
-                "height_ratio": self.height_ratio_var.get(),
-                "gap": self.gap_var.get(),
-            }
-
             if len(text) == 1:
-                result = convert(text, **kwargs)
+                result = convert(text, **params)
             else:
-                result = batch_convert(text, **kwargs)
+                result = batch_convert(text, **params)
 
-            self.root.after(0, self._on_generate_done, result, None)
+            self.root.after(0, self._on_generate_done, result, None, params)
         except Exception as e:
-            self.root.after(0, self._on_generate_done, None, e)
+            self.root.after(0, self._on_generate_done, None, e, params)
 
-    def _on_generate_done(self, result, error):
+    def _on_generate_done(self, result, error, params):
         self._set_buttons_state("normal")
         if error:
             self.status_var.set(f"错误: {error}")
@@ -436,10 +436,10 @@ class Char2AsciiApp:
         self.preview_text.config(state="disabled")
 
         text = self.input_entry.get().strip()
+        font_label = params.get("font_path", "") or "未找到"
         self.status_var.set(
-            f"完成 | {len(text)}字 | {self.charset_name.get()} | "
-            f"宽度{self.width_var.get()} | "
-            f"字体: {find_font() or '未找到'}"
+            f"完成 | {len(text)}字 | {params['charset_name']} | "
+            f"宽度{params['width']} | 字体: {os.path.basename(font_label)}"
         )
 
     def _set_buttons_state(self, state):
