@@ -273,7 +273,7 @@ class Char2AsciiApp:
         # 间距
         self._make_slider(inner, "间距", self.gap_var, -10, 10, 2)
         # 高度比
-        self._make_slider(inner, "高度比", self.height_ratio_var, 0.3, 3.0, 3, resolution=0.1)
+        self._make_slider(inner, "高度比", self.height_ratio_var, 0.3, 3.0, 3)
 
         # 反色
         invert_frame = tk.Frame(inner, bg=COLORS["bg"])
