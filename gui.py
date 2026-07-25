@@ -309,12 +309,35 @@ class Char2AsciiApp:
                         orient="horizontal", bg=COLORS["bg"],
                         fg=COLORS["text"], troughcolor=COLORS["bg3"],
                         highlightthickness=0, sliderlength=16,
-                        font=("Helvetica", 9), length=140,
+                        font=("Helvetica", 9), length=110,
                         command=lambda _: self._on_param_change())
         if resolution is not None:
             scale_kw["resolution"] = resolution
         scale = tk.Scale(parent, **scale_kw)
-        scale.grid(row=row, column=1, columnspan=2, sticky="w", pady=3)
+        scale.grid(row=row, column=1, sticky="w", pady=3)
+
+        # 手动输入框
+        entry = tk.Entry(parent, textvariable=var, width=5,
+                         bg=COLORS["bg2"], fg=COLORS["text"],
+                         insertbackground=COLORS["accent"],
+                         font=("Helvetica", 9), relief="flat",
+                         highlightbackground=COLORS["border"],
+                         highlightthickness=1, justify="center")
+        entry.grid(row=row, column=2, sticky="w", padx=(4, 0), pady=3)
+
+        def _clamp(_=None):
+            try:
+                val = var.get()
+                if val < from_:
+                    var.set(from_)
+                elif val > to_:
+                    var.set(to_)
+            except (tk.TclError, TypeError):
+                var.set(from_)
+            self._on_param_change()
+
+        entry.bind("<Return>", _clamp)
+        entry.bind("<FocusOut>", _clamp)
 
     def _build_actions_section(self, parent):
         frame = tk.Frame(parent, bg=COLORS["bg"])
