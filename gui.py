@@ -297,8 +297,12 @@ class Char2AsciiApp:
             return
 
         self.status_var.set("生成中...")
+        self._set_buttons_state("disabled")
         self.root.update_idletasks()
 
+        threading.Thread(target=self._do_generate, args=(text,), daemon=True).start()
+
+    def _do_generate(self, text):
         try:
             kwargs = {
                 "width": self.width_var.get(),
@@ -313,19 +317,32 @@ class Char2AsciiApp:
             else:
                 result = batch_convert(text, **kwargs)
 
-            self.preview_text.config(state="normal")
-            self.preview_text.delete("1.0", "end")
-            self.preview_text.insert("1.0", result)
-            self.preview_text.config(state="disabled")
-
-            font_name = self.charset_name.get()
-            self.status_var.set(
-                f"完成 | {len(text)}字 | {font_name} | "
-                f"宽度{self.width_var.get()} | "
-                f"字体: {find_font() or '未找到'}"
-            )
+            self.root.after(0, self._on_generate_done, result, None)
         except Exception as e:
-            self.status_var.set(f"错误: {e}")
+            self.root.after(0, self._on_generate_done, None, e)
+
+    def _on_generate_done(self, result, error):
+        self._set_buttons_state("normal")
+        if error:
+            self.status_var.set(f"错误: {error}")
+            return
+
+        self.preview_text.config(state="normal")
+        self.preview_text.delete("1.0", "end")
+        self.preview_text.insert("1.0", result)
+        self.preview_text.config(state="disabled")
+
+        text = self.input_entry.get().strip()
+        self.status_var.set(
+            f"完成 | {len(text)}字 | {self.charset_name.get()} | "
+            f"宽度{self.width_var.get()} | "
+            f"字体: {find_font() or '未找到'}"
+        )
+
+    def _set_buttons_state(self, state):
+        for w in self.root.winfo_children():
+            if isinstance(w, tk.Button):
+                w.config(state=state)
 
     def _copy(self):
         content = self.preview_text.get("1.0", "end").rstrip()
